@@ -1,0 +1,73 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 6CCS3PRJ Final Year Individual Project Report
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[11pt]{informatics-report}
+\usepackage{color}
+\usepackage[square,sort,comma,numbers]{natbib} %References
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Front Matter - project title, name, supervisor name and date
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{A Minimal Agent Based model for simulating the Foreign Exchange Market}
+\author{Ravi Desai}
+\studentID{1902956}
+\supervisor{Dr Carmine Ventre}
+
+\date{\today}
+
+\abstractFile{FrontMatter/abstract.tex}
+\ackFile{FrontMatter/acknowledgements.tex} %Remove line if you do not want acknowledgements
+
+\begin{document}
+\createFrontMatter
+\onehalfspacing
+\tableofcontents
+\doublespacing
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Report Content
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% You can write each chapter directly here or in a separate .tex file and use the include command.
+
+\chapter{Introduction}
+Agent based modelling can be used to simulate the behaviour of an autonomous agent. Agents in these systems can be used to effectively model the interactions between different entities in a closed system. These interactions can be used to model the complex foreign exchange (FX) market. Many different entities tend to participate in the FX market from small retail traders to institutional traders and market makers.
+
+The FX market is a complex system and by far the largest financial market in terms of trading volume. The market is open 24 hours a day and only closes during the weekend. Currencies are traded in pairs equating value from one currency to another; the most liquid trading pair being the EUR/USD pair. Generally, market-makers are banks that deal with high volumes of trades and determine their own bid and offer prices determined by the market and their own internally applied margins and skews for currency pairs which can be then be used in trades with other institutions or retail traders. The market also offers very high amounts of leverage and brokers can offer leverage ratios of 100:1.
+
+
+
+\section{Aims and Objectives}
+The aim of this project is to produce an agent based model (ABM) which can match historic price trends for the EUR/USD currency pair with relatively high accuracy. To do this I will need to model different types of agents for the market suck as banks/market-makers and buy/sell agents for these institutions to trade with. The aim is to match historic price trends with a minimal model that uses the least amount of complexity in terms of agent components and trading mechanisms within trading agents.
+
+The project also aims to determine the feasibility of such a minimal ABM. This can be determined through statistical analysis of the output of the model in comparison to historic data.
+
+A secondary objective of this project is to investigate whether the model is able to accurately and repeatably predict future price trends for the EUR/USD currency pair by comparing the output of the model with historic data that was withheld from the model input.
+
+
+\include{Chapters/Background}
+
+
+%\include{Chapters/Body}
+\include{Chapters/DesignSpecification}
+%\include{Chapters/Implementation}
+%\include{Chapters/ProfessionalIssues}
+%\include{Chapters/Evaluation}
+%\include{Chapters/Conclusion}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% References
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bibliographystyle{plain}
+\bibliography{references.bib}
+\bibliography{References}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Appendices
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+%\include{Appendices/appendix}
+%\include{Appendices/UserGuide}
+%\include{Appendices/SourceCode}
+\end{document}
