@@ -1,7 +1,16 @@
 \chapter{Design \& Specification}
+
+\section{Design}
+
 As referenced in figure \ref{fig:model}, the ABM will consist of bank agents representing the market-makers and some different types of trading agents that are connected to it as well as some retail traders. Data is fed to the bank agents to determine an exchange rate and and this is observable to the traders who can then act on the rate and trade accordingly.
 
 The model should hence produce a reasonable simulation of the forex market and with more trading activity a trend for the exchange rate for EUR/USD will be produced by the market-makers in the model. From this graph of exchange rate over time, I can compare it to historic data of exchange rates over time. I can then look at the two graphs and use statistical analysis such as the product moment correlation coefficient (PMCC) to determine the correlation between the historic data and the model's output.
+
+\subsection{Model Design}
+The model will most likely consist of a very basic environment for agents to exist in. It will be an array of agents in the model's scheduler. Agents should be activated in a random order for each model step to be fair in an ideal sense, however any trades that a bank makes or a bank's traders make will be executed first. This is to reflect the fact that the inter-bank market is a faster market primarily governed by algorithmic trading with around 92\% of trading in the FX market performed by trading algorithms. \cite{kissell2020algorithmic}
+
+\subsection{Agent Design}
+Agents will be given different trading functions dependent on what type of agent they are. Bank agents will prioritise minimising risk and will trade higher volumes at lower yields to service its clients. Trading agents such as the buy and sell agents belonging to the banks may want to see higher risk trading opportunities. Retail agents may take on even greater risk to match their higher profit incentive, and may also act in a random manner at times to attempt to mirror the human aspect of retail traders. All agents do not have to trade at every model time step, they can hold long positions if they choose.
 
 \section{Specification}
 
@@ -13,6 +22,7 @@ The Mesa library already provides a front end application for users to view the 
 \begin{itemize}
 \item The project should aim to provide a clear visual output from the model that shows the exchange rate against time on a line graph for each individual market maker in the model.
 \item Options should be available for users to average the market-maker exchange rates and compare the model output to historic data available.
+\item The front end should be able to display metrics about differences in average yield between different types of trading agents as well as profit distribution.
 \end{itemize} 
 
 
