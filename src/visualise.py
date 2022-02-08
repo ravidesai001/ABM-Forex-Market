@@ -10,7 +10,7 @@ chart = ChartModule([{"Label": "EURUSD",
 server = ModularServer(MoneyModel,
                        [chart],
                        "Money Model",
-                       {"NumBanks":5, "NumBuyers":100, "NumSellers":100})
+                       {"NumBanks":5, "NumTraders": 100})
 
 server.port = 8521 # The default
 server.launch()
