@@ -1,6 +1,6 @@
 from tokenize import Double
-from mesa import Agent, Model
-from typing import List, Tuple  
+from mesa import Agent
+from typing import List
 from dataclasses import dataclass  
 
 @dataclass
@@ -18,8 +18,6 @@ class Match(object):
     Offer: Order
 
 class CDA(Agent):
-    """The Continuous Double Auction Mechanism as an agent. It will fulfill interbank trading.
-    Match making between bank agent trades."""
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         self.Bids: List[Order] = []

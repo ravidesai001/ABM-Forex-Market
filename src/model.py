@@ -3,54 +3,33 @@ from mesa import Agent, Model
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
 from CDA import CDA, Order
+from data import DataReader
 
 class BankAgent(Agent):
     """ An agent with fixed initial wealth."""
-    def __init__(self, unique_id, model, exchange_rate):
+    def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         # try to maintain this initial ratio of euros and dollars as risk mitigation strategy
         self.EUR = 1000000000 # 1 billion
-        self.USD = self.EUR * exchange_rate
-        self.prevEUR = 0
-        self.prevUSD = 0
+        self.USD = 1000000000
         # exchange rate is always as EURUSD
-        self.exchange_rate = exchange_rate # perhaps init this as 1 then let model reach equilibrium
+        self.exchange_rate = (self.model.data.iat[0, 0] + self.model.data.iat[0, 1]) / 2 # perhaps init this as 1 then let model reach equilibrium
         self.threshold = 800000000
-
-    def trade(self):
-        other = self.random.choice(self.model.schedule.agents)
-        sell_currency = self.random.choice(["EUR", "USD"])
-        if sell_currency == "EUR":
-            euros = self.random.normalvariate(self.EUR/2, self.EUR * 0.05)
-            dollars = self.random.normalvariate(other.USD/2, other.USD * 0.05)
-            other.EUR += euros
-            self.EUR -= euros
-            self.USD += dollars
-            other.USD -= dollars
-        else:
-            dollars = self.random.normalvariate(self.USD/2, self.USD * 0.05)
-            euros = self.random.normalvariate(other.EUR/2, other.EUR * 0.05)
-            other.USD += dollars
-            self.USD -= dollars
-            self.EUR += euros
-            other.EUR -= euros
-            self.prevEUR = euros
-            self.prevUSD = dollars
+        self.current_step = 1
     
     # offload risk and unload positions within interbank cda
-    def cda_trade(self):
-        self.exchange_rate = self.random.gauss(self.exchange_rate, 0.05)
+    def cda_trade(self, bid, offer):
         if self.EUR > self.threshold:
-            sellEuroOrder = Order(self.unique_id, True, int(self.EUR - self.threshold), self.exchange_rate, 0)
+            sellEuroOrder = Order(self.unique_id, True, int(self.EUR - self.threshold), offer, 0)
             self.model.CDA.AddOrder(sellEuroOrder)
-        if self.USD > self.threshold * self.exchange_rate:
-            sellUsdOrder = Order(self.unique_id, True, int(self.USD - self.threshold * self.exchange_rate), self.exchange_rate, 1)
+        elif self.USD > self.threshold:
+            sellUsdOrder = Order(self.unique_id, True, int(self.USD - self.threshold), offer, 1)
             self.model.CDA.AddOrder(sellUsdOrder)
-        if self.EUR < self.threshold:
-            buyEuroOrder = Order(self.unique_id, False, int(self.threshold - self.EUR), self.exchange_rate, 0)
+        elif self.EUR < self.threshold:
+            buyEuroOrder = Order(self.unique_id, False, int(self.threshold - self.EUR), bid, 0)
             self.model.CDA.AddOrder(buyEuroOrder)
-        if self.USD < self.threshold * self.exchange_rate:
-            buyUsdOrder = Order(self.unique_id, False, int(self.threshold * self.exchange_rate - self.USD), self.exchange_rate, 1)
+        elif self.USD < self.threshold:
+            buyUsdOrder = Order(self.unique_id, False, int(self.threshold- self.USD), bid, 1)
             self.model.CDA.AddOrder(buyUsdOrder)
         # Matched orders
         self.model.CDA.MatchOrders()
@@ -61,7 +40,7 @@ class BankAgent(Agent):
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR += match.Offer.Quantity # buying euros from counterparty
                     self.USD -= int(match.Offer.Quantity * price) # exchanging dollars for counterparty's euros
-                    print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
+                    # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
                             agent.EUR -= match.Offer.Quantity
@@ -71,7 +50,7 @@ class BankAgent(Agent):
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR -= int(match.Offer.Quantity * (1 / price)) # selling euros to counterparty
                     self.USD += match.Offer.Quantity # getting back dollars from counterparty
-                    print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
+                    # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
                             agent.EUR += int(match.Offer.Quantity * (1 / price))
@@ -79,8 +58,10 @@ class BankAgent(Agent):
         
     
     def step(self):
-        self.cda_trade()
-        # self.trade()
+        bid, offer = self.model.data.iat[self.current_step, 0], self.model.data.iat[self.current_step, 1]
+        self.exchange_rate = (bid + offer) / 2
+        self.cda_trade(bid, offer)
+        self.current_step += 1
 
 class Trader(Agent):
     """ An agent with fixed initial wealth."""
@@ -125,11 +106,11 @@ class MoneyModel(Model):
         self.schedule = RandomActivation(self)
         self.running = True
         self.CDA = CDA("CDA", self)
+        self.data = DataReader("./data/december_2021_tick_data.csv").get_minute_data()
 
         # Create agents
         for i in range(self.num_banks):
-            exchange_rate = self.random.normalvariate(1.14, 0.05)
-            bank = BankAgent("bank" + str(i), self, exchange_rate)
+            bank = BankAgent("bank" + str(i), self)
             self.schedule.add(bank)
             # buy and sell agents should belong to the bank
             for i in range(self.num_traders):
@@ -152,7 +133,7 @@ def average_rate(model):
             rates.append(agent.exchange_rate)
     if len(rates) != 0:
         return sum(rates)/len(rates)
-    return 0
+    return (model.data.iat[0, 0] + model.data.iat[0, 1]) / 2
 
 def currency_ratio(model):
     rates = []
