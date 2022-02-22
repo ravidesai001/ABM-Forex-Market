@@ -1,4 +1,3 @@
-from locale import currency
 from mesa import Agent, Model
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
@@ -10,26 +9,27 @@ class BankAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         # try to maintain this initial ratio of euros and dollars as risk mitigation strategy
-        self.EUR = 1000000000 # 1 billion
-        self.USD = 1000000000
+        self.EUR = 10000000000 # 10 billion
+        self.USD = 10000000000
         # exchange rate is always as EURUSD
-        self.exchange_rate = (self.model.data.iat[0, 0] + self.model.data.iat[0, 1]) / 2 # perhaps init this as 1 then let model reach equilibrium
-        self.threshold = 800000000
+        self.bid = self.model.data.iat[0, 0]
+        self.offer = self.model.data.iat[0, 1]
+        self.threshold = 8000000000 # 8 billion
         self.current_step = 1
     
     # offload risk and unload positions within interbank cda
-    def cda_trade(self, bid, offer):
+    def cda_trade(self):
         if self.EUR > self.threshold:
-            sellEuroOrder = Order(self.unique_id, True, int(self.EUR - self.threshold), offer, 0)
+            sellEuroOrder = Order(self.unique_id, True, int(self.EUR - self.threshold), self.offer, 0)
             self.model.CDA.AddOrder(sellEuroOrder)
         elif self.USD > self.threshold:
-            sellUsdOrder = Order(self.unique_id, True, int(self.USD - self.threshold), offer, 1)
+            sellUsdOrder = Order(self.unique_id, True, int(self.USD - self.threshold), self.offer, 1)
             self.model.CDA.AddOrder(sellUsdOrder)
         elif self.EUR < self.threshold:
-            buyEuroOrder = Order(self.unique_id, False, int(self.threshold - self.EUR), bid, 0)
+            buyEuroOrder = Order(self.unique_id, False, int(self.threshold - self.EUR), self.bid, 0)
             self.model.CDA.AddOrder(buyEuroOrder)
         elif self.USD < self.threshold:
-            buyUsdOrder = Order(self.unique_id, False, int(self.threshold- self.USD), bid, 1)
+            buyUsdOrder = Order(self.unique_id, False, int(self.threshold- self.USD), self.bid, 1)
             self.model.CDA.AddOrder(buyUsdOrder)
         # Matched orders
         self.model.CDA.MatchOrders()
@@ -40,7 +40,7 @@ class BankAgent(Agent):
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR += match.Offer.Quantity # buying euros from counterparty
                     self.USD -= int(match.Offer.Quantity * price) # exchanging dollars for counterparty's euros
-                    # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
+                    print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
                             agent.EUR -= match.Offer.Quantity
@@ -50,7 +50,7 @@ class BankAgent(Agent):
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR -= int(match.Offer.Quantity * (1 / price)) # selling euros to counterparty
                     self.USD += match.Offer.Quantity # getting back dollars from counterparty
-                    # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
+                    print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
                             agent.EUR += int(match.Offer.Quantity * (1 / price))
@@ -58,9 +58,9 @@ class BankAgent(Agent):
         
     
     def step(self):
-        bid, offer = self.model.data.iat[self.current_step, 0], self.model.data.iat[self.current_step, 1]
-        self.exchange_rate = (bid + offer) / 2
-        self.cda_trade(bid, offer)
+        self.bid, self.offer = self.model.data.iat[self.current_step, 0], self.model.data.iat[self.current_step, 1]
+        # add randomised margin for each bank at this stage
+        self.cda_trade()
         self.current_step += 1
 
 class Trader(Agent):
@@ -113,34 +113,42 @@ class MoneyModel(Model):
             bank = BankAgent("bank" + str(i), self)
             self.schedule.add(bank)
             # buy and sell agents should belong to the bank
-            for i in range(self.num_traders):
-                trader = Trader("trader" + str(i) + bank.unique_id, self, bank)
-                self.schedule.add(trader)
-
-        self.datacollector = DataCollector(
-            model_reporters={"EURUSD": average_rate},
-            agent_reporters={"Euros": "EUR", "Dollars": "USD"})
+            # for i in range(self.num_traders):
+            #     trader = Trader("trader" + str(i) + bank.unique_id, self, bank)
+            #     self.schedule.add(trader)
+        self.datacollector = DataCollector(model_reporters={"Bid": average_bid, "Offer": average_offer, "Spread": average_spread})
 
     def step(self):
         # self.CDA.MatchOrders()
         self.datacollector.collect(self)
         self.schedule.step()
 
-def average_rate(model):
+
+def average_bid(model):
     rates = []
     for agent in model.schedule.agents:
         if agent.unique_id.startswith("bank"):
-            rates.append(agent.exchange_rate)
+            rates.append(agent.bid)
     if len(rates) != 0:
         return sum(rates)/len(rates)
-    return (model.data.iat[0, 0] + model.data.iat[0, 1]) / 2
+    return model.data.iat[0,0]
 
-def currency_ratio(model):
+def average_offer(model):
     rates = []
     for agent in model.schedule.agents:
-        if agent.unique_id != "CDA" and agent.prevEUR != 0:
-            rates.append(agent.prevUSD/float(agent.prevEUR))
-
+        if agent.unique_id.startswith("bank"):
+            rates.append(agent.offer)
     if len(rates) != 0:
-        return sum(rates)/len(rates)/100
-    return 0
+        return sum(rates)/len(rates)
+    return model.data.iat[0,1]
+
+# spread in pips
+def average_spread(model):
+    spreads = []
+    for agent in model.schedule.agents:
+        if agent.unique_id.startswith("bank"):
+            spreads.append(abs(agent.offer - agent.bid))
+    if len(spreads) != 0:
+        return (sum(spreads)/len(spreads))/0.0001
+    return abs(model.data.iat[0,1] - model.data.iat[0,0])/0.0001
+

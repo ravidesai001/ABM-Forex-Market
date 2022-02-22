@@ -15,9 +15,6 @@ class DataReader:
     def get_data(self):
         return self.data
     
-# reader = DataReader("./data/december_2021_tick_data.csv")
-# print(reader.get_minute_data().iat[0,1])
-
 
 
 

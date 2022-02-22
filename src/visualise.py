@@ -3,12 +3,18 @@ from mesa.visualization.modules import ChartModule
 
 from model import *
 
-chart = ChartModule([{"Label": "EURUSD",
-                      "Color": "Black"}],
+rate_chart = ChartModule([{"Label": "Bid",
+                      "Color": "Black"},
+                      {"Label": "Offer",
+                      "Color": "Red"}],
+                    data_collector_name='datacollector')
+                
+
+spread_chart = ChartModule([{"Label": "Spread", "Color": "Red"}], 
                     data_collector_name='datacollector')
 
 server = ModularServer(MoneyModel,
-                       [chart],
+                       [rate_chart, spread_chart],
                        "Money Model",
                        {"NumBanks":5, "NumTraders": 100})
 
