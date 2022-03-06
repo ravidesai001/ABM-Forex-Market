@@ -8,7 +8,10 @@ class DataReader:
         self.file = filename
         self.data = None
         # millisecond precision tick data "./data/december_2021_tick_data.csv"
-        self.data = pd.read_csv(self.file, usecols=[0,1,2], converters={'date': self.convert_date})
+        if "december" in self.file:
+            self.data = pd.read_csv(self.file, usecols=[0,1,2], converters={'date': self.convert_date})
+        else: # year case
+            self.data = pd.read_csv(self.file, usecols=[0,1,2], delimiter=";", converters={'date': self.convert_date})
     
     def convert_date(self, x):
         dt = x.split(" ")
@@ -28,7 +31,7 @@ class Writer:
         self.data = DataReader(filename).get_data()
 
     def get_spread_data(self): # spread in pips
-        return [abs(row[1] - row[2]) / 0.0001 for row in self.data.itertuples(index=False)]
+        return [(row[2] - row[1]) / 0.0001 for row in self.data.itertuples(index=False) if (row[2] - row[1]) / 0.0001 < 20] # removes a few outliers at top end
 
     def write_probability_data(self):
         spread_data = self.get_spread_data()
@@ -37,24 +40,24 @@ class Writer:
         for spread in spread_data:
             f.writelines(str(spread) + ", " + str(spread / max_spread) + "\n")
         f.close()
-    
-
-    
-
-def main():
-    start = time.process_time()
+  
+# generating linear regression model for spread to probability mapping.
+def generate_linear_model():
+    # Writer("./data/year_2021_tick_data.csv").write_probability_data()
     data = pd.read_csv("./data/probabilities.csv", dtype=(float, float))
     X, y = [], []
     for row in data.itertuples(index=False):
         X.append([row[0]])
         y.append([row[1]])
-    # Writer("./data/december_2021_tick_data.csv").write_probability_data()
-    # print(X[:5], y[:5])
     reg = LinearRegression(fit_intercept=False).fit(X, y)
-    print(reg.coef_, reg.intercept_)
-    end = time.process_time()
-    print("time taken: " + str(end - start))
-    
+    model_file = open("./data/model_params.txt", "w") # fitting function to max probability at 0 and -ve spread
+    model_file.writelines(str(reg.coef_[0][0] * -1) + ", " + str(reg.intercept_ + 1))
+    model_file.close()
+
+def main():
+    # data = DataReader("./data/year_2021_tick_data.csv").get_hour_data()
+    Writer("./data/year_2021_tick_data.csv").write_probability_data()
 
 if __name__ == "__main__":
-    main()
+    generate_linear_model()
+    # main()

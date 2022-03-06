@@ -3,6 +3,8 @@ from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
 from CDA import CDA, Order
 from data import DataReader
+from numpy import loadtxt
+from random import random
 
 class BankAgent(Agent):
     """ An agent with fixed initial wealth."""
@@ -59,15 +61,17 @@ class BankAgent(Agent):
 
     def cda_reactive_trade(self):
         spread_in_pips = abs(self.bid - self.offer) / 0.0001
-        pass
+        probability = self.model.get_trade_probability(spread_in_pips)
+        if random() < probability:
+            self.cda_threshold_trade()
         # need to construct a spread to probability of trade execution table along with probability weighting the volume to trade
         # construct continuous probability distribution by dividing each spread data point by the maximum spread
     
     def step(self):
         self.bid, self.offer = self.model.data.iat[self.model.current_step, 0], self.model.data.iat[self.model.current_step, 1]
         # add randomised margin for each bank at this stage
-        self.cda_threshold_trade()
-        # self.cda_reactive_trade()
+        # self.cda_threshold_trade()
+        self.cda_reactive_trade()
         self.threshold = self.random.normalvariate(5000000000, 500000000) # mu = 5 billion, sigma = 500 million
         # print(self.threshold)
 
@@ -116,11 +120,12 @@ class FXModel(Model):
         self.schedule = RandomActivation(self)
         self.running = True
         self.CDA = CDA("CDA", self)
-        self.data = DataReader("./data/december_2021_tick_data.csv").get_hour_data()
+        self.data = DataReader("./data/year_2021_tick_data.csv").get_hour_data()
         self.max_steps = len(self.data.index) # number of data rows = max number of model steps
         self.num_trades = 0
         self.current_step = 0
         self.trades = [0]
+        self.params = loadtxt("./data/model_params.txt", delimiter=",", dtype=(float, float))
 
         # Create agents
         for i in range(self.num_banks):
@@ -131,6 +136,20 @@ class FXModel(Model):
                 trader = Trader("trader" + str(i) + bank.unique_id, self, bank)
                 self.schedule.add(trader)
         self.datacollector = DataCollector(model_reporters={"Bid": average_bid, "Offer": average_offer, "Spread": average_spread, "Trades": num_trades})
+    
+    def get_trade_probability(self, x):
+        # example from trained spread dataset-> y = 1 - 0.03125x
+        # gives probability of trading based on current spread in pips x
+        # h(x) = {1 - 0.03125x, if 0 <= x <= 32;
+        #         1, if x < 0;
+        #         0, if x > 32}
+        p = float(self.params[0]) * x + float(self.params[1])
+        if p > 1:
+            return 1
+        elif p < 0:
+            return 0
+        else:
+            return p
 
     def step(self):
         self.datacollector.collect(self)
