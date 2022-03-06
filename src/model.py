@@ -9,16 +9,16 @@ class BankAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         # try to maintain this initial ratio of euros and dollars as risk mitigation strategy
-        self.EUR = 10000000000 # 10 billion
-        self.USD = 10000000000
+        self.EUR = 5000000000 # 5 billion
+        self.USD = 5000000000
         # exchange rate is always as EURUSD
         self.bid = self.model.data.iat[0, 0]
         self.offer = self.model.data.iat[0, 1]
-        self.threshold = 8000000000 # 8 billion
-        self.current_step = 1
+        self.threshold = self.random.normalvariate(5000000000, 500000000) # mu = 5 billion, sigma = 500 million
     
     # offload risk and unload positions within interbank cda
-    def cda_trade(self):
+    # instead of threshold trading, trade on the bid ask spread explicitly
+    def cda_threshold_trade(self):
         if self.EUR > self.threshold:
             sellEuroOrder = Order(self.unique_id, True, int(self.EUR - self.threshold), self.offer, 0)
             self.model.CDA.AddOrder(sellEuroOrder)
@@ -33,14 +33,15 @@ class BankAgent(Agent):
             self.model.CDA.AddOrder(buyUsdOrder)
         # Matched orders
         self.model.CDA.MatchOrders()
-        # print(self.model.CDA.Matches)
+        # print(len(self.model.CDA.Matches))
         for match in self.model.CDA.Matches:
             if match.Bid.CreatorID == self.unique_id:
+                self.model.num_trades += 1
                 if match.Bid.currency == 0: # euros
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR += match.Offer.Quantity # buying euros from counterparty
                     self.USD -= int(match.Offer.Quantity * price) # exchanging dollars for counterparty's euros
-                    print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
+                    # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
                             agent.EUR -= match.Offer.Quantity
@@ -50,32 +51,39 @@ class BankAgent(Agent):
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR -= int(match.Offer.Quantity * (1 / price)) # selling euros to counterparty
                     self.USD += match.Offer.Quantity # getting back dollars from counterparty
-                    print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
+                    # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
                             agent.EUR += int(match.Offer.Quantity * (1 / price))
                             agent.USD -= match.Offer.Quantity
-        
+
+    def cda_reactive_trade(self):
+        spread_in_pips = abs(self.bid - self.offer) / 0.0001
+        pass
+        # need to construct a spread to probability of trade execution table along with probability weighting the volume to trade
+        # construct continuous probability distribution by dividing each spread data point by the maximum spread
     
     def step(self):
-        self.bid, self.offer = self.model.data.iat[self.current_step, 0], self.model.data.iat[self.current_step, 1]
+        self.bid, self.offer = self.model.data.iat[self.model.current_step, 0], self.model.data.iat[self.model.current_step, 1]
         # add randomised margin for each bank at this stage
-        self.cda_trade()
-        self.current_step += 1
+        self.cda_threshold_trade()
+        # self.cda_reactive_trade()
+        self.threshold = self.random.normalvariate(5000000000, 500000000) # mu = 5 billion, sigma = 500 million
+        # print(self.threshold)
 
 class Trader(Agent):
     """ An agent with fixed initial wealth."""
     def __init__(self, unique_id, model, bank):
         super().__init__(unique_id, model)
         self.bank = bank
-        self.EUR = 100
-        self.USD = self.EUR * self.bank.exchange_rate
+        self.EUR = 10000000 # 1 million
+        self.USD = 10000000
         self.prevEUR = 0
         self.prevUSD = 0
 
     def trade(self):
         other = self.random.choice(self.model.schedule.agents)
-        sell_currency = self.random.choice(["EUR", "USD"])
+        sell_currency = self.random.choice(["EUR", "USD", "NONE"])
         if sell_currency == "EUR":
             euros = self.random.normalvariate(self.EUR/2, self.EUR * 0.05)
             dollars = self.random.normalvariate(other.USD/2, other.USD * 0.05)
@@ -83,7 +91,8 @@ class Trader(Agent):
             self.EUR -= euros
             self.USD += dollars
             other.USD -= dollars
-        else:
+            self.model.num_trades += 1
+        elif sell_currency == "USD":
             dollars = self.random.normalvariate(self.USD/2, self.USD * 0.05)
             euros = self.random.normalvariate(other.EUR/2, other.EUR * 0.05)
             other.USD += dollars
@@ -92,13 +101,14 @@ class Trader(Agent):
             other.EUR -= euros
             self.prevEUR = euros
             self.prevUSD = dollars
+            self.model.num_trades += 1
 
     def step(self):
         self.trade()
     
 
 
-class MoneyModel(Model):
+class FXModel(Model):
     """A model with some number of agents."""
     def __init__(self, NumBanks, NumTraders):
         self.num_banks = NumBanks
@@ -106,23 +116,32 @@ class MoneyModel(Model):
         self.schedule = RandomActivation(self)
         self.running = True
         self.CDA = CDA("CDA", self)
-        self.data = DataReader("./data/december_2021_tick_data.csv").get_minute_data()
+        self.data = DataReader("./data/december_2021_tick_data.csv").get_hour_data()
+        self.max_steps = len(self.data.index) # number of data rows = max number of model steps
+        self.num_trades = 0
+        self.current_step = 0
+        self.trades = [0]
 
         # Create agents
         for i in range(self.num_banks):
             bank = BankAgent("bank" + str(i), self)
             self.schedule.add(bank)
             # buy and sell agents should belong to the bank
-            # for i in range(self.num_traders):
-            #     trader = Trader("trader" + str(i) + bank.unique_id, self, bank)
-            #     self.schedule.add(trader)
-        self.datacollector = DataCollector(model_reporters={"Bid": average_bid, "Offer": average_offer, "Spread": average_spread})
+            for i in range(self.num_traders):
+                trader = Trader("trader" + str(i) + bank.unique_id, self, bank)
+                self.schedule.add(trader)
+        self.datacollector = DataCollector(model_reporters={"Bid": average_bid, "Offer": average_offer, "Spread": average_spread, "Trades": num_trades})
 
     def step(self):
-        # self.CDA.MatchOrders()
         self.datacollector.collect(self)
+        self.trades.append(self.num_trades)
+        # print(self.trades)
+        self.current_step += 1
         self.schedule.step()
+        # print(self.trades)
 
+def num_trades(model):
+    return model.trades[-1] - model.trades[-2] if len(model.trades) > 1 else model.trades[-1]
 
 def average_bid(model):
     rates = []
