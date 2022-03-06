@@ -86,8 +86,9 @@ class Trader(Agent):
         self.prevUSD = 0
 
     def trade(self):
+        self.model.num_trades += 1
         other = self.random.choice(self.model.schedule.agents)
-        sell_currency = self.random.choice(["EUR", "USD", "NONE"])
+        sell_currency = self.random.choice(["EUR", "USD"])
         if sell_currency == "EUR":
             euros = self.random.normalvariate(self.EUR/2, self.EUR * 0.05)
             dollars = self.random.normalvariate(other.USD/2, other.USD * 0.05)
@@ -95,8 +96,7 @@ class Trader(Agent):
             self.EUR -= euros
             self.USD += dollars
             other.USD -= dollars
-            self.model.num_trades += 1
-        elif sell_currency == "USD":
+        else:
             dollars = self.random.normalvariate(self.USD/2, self.USD * 0.05)
             euros = self.random.normalvariate(other.EUR/2, other.EUR * 0.05)
             other.USD += dollars
@@ -105,15 +105,17 @@ class Trader(Agent):
             other.EUR -= euros
             self.prevEUR = euros
             self.prevUSD = dollars
-            self.model.num_trades += 1
 
     def step(self):
-        self.trade()
+        spread_in_pips = abs(self.bank.bid - self.bank.offer) / 0.0001
+        probability = self.model.get_trade_probability(spread_in_pips)
+        if random() * 2 < probability:
+            self.trade()
     
 
 
 class FXModel(Model):
-    """A model with some number of agents."""
+    """FX model with agents modelling market activity"""
     def __init__(self, NumBanks, NumTraders):
         self.num_banks = NumBanks
         self.num_traders = NumTraders

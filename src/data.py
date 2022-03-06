@@ -2,6 +2,7 @@ from datetime import datetime
 import pandas as pd
 import time
 from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 
 class DataReader:
     def __init__(self, filename) -> None:
@@ -22,16 +23,19 @@ class DataReader:
 
     def get_hour_data(self):
         return self.data.groupby(by=[self.data.date.map(lambda x: datetime(year=x.year, month=x.month, day=x.day, hour=x.hour))]).mean()
+    
+    def get_six_hour_data(self):
+        return self.data.groupby(by=[self.data.date.map(lambda x: datetime(year=x.year, month=x.month, day=x.day, hour=x.hour) if x.hour % 6 == 0 else None)]).mean()
         
     def get_data(self):
         return self.data
 
 class Writer:
     def __init__(self, filename) -> None:
-        self.data = DataReader(filename).get_data()
+        self.data = DataReader(filename).get_six_hour_data()
 
     def get_spread_data(self): # spread in pips
-        return [(row[2] - row[1]) / 0.0001 for row in self.data.itertuples(index=False) if (row[2] - row[1]) / 0.0001 < 20] # removes a few outliers at top end
+        return [(row[1] - row[0]) / 0.0001 for row in self.data.itertuples(index=False) if (row[1] - row[0]) / 0.0001 < 20] # removes a few outliers at top end
 
     def write_probability_data(self):
         spread_data = self.get_spread_data()
@@ -43,7 +47,9 @@ class Writer:
   
 # generating linear regression model for spread to probability mapping.
 def generate_linear_model():
-    # Writer("./data/year_2021_tick_data.csv").write_probability_data()
+    # data = DataReader("./data/year_2021_tick_data.csv").get_six_hour_data()
+    # print(data.head())
+    Writer("./data/year_2021_tick_data.csv").write_probability_data()
     data = pd.read_csv("./data/probabilities.csv", dtype=(float, float))
     X, y = [], []
     for row in data.itertuples(index=False):
@@ -53,10 +59,13 @@ def generate_linear_model():
     model_file = open("./data/model_params.txt", "w") # fitting function to max probability at 0 and -ve spread
     model_file.writelines(str(reg.coef_[0][0] * -1) + ", " + str(reg.intercept_ + 1))
     model_file.close()
+    # plt.scatter(X, y)
+    # plt.show()
 
 def main():
-    # data = DataReader("./data/year_2021_tick_data.csv").get_hour_data()
-    Writer("./data/year_2021_tick_data.csv").write_probability_data()
+    data = DataReader("./data/year_2021_tick_data.csv").get_six_hour_data()
+    print(data.head())
+    # Writer("./data/year_2021_tick_data.csv").write_probability_data()
 
 if __name__ == "__main__":
     generate_linear_model()
