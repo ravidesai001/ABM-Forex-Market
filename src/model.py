@@ -4,19 +4,19 @@ from mesa.datacollection import DataCollector
 from CDA import CDA, Order
 from data import DataReader
 from numpy import loadtxt
-from random import random
+import random
 
 class BankAgent(Agent):
     """ An agent with fixed initial wealth."""
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         # try to maintain this initial ratio of euros and dollars as risk mitigation strategy
-        self.EUR = 5000000000 # 5 billion
-        self.USD = 5000000000
+        self.EUR = 100000000 # 10 million
+        self.USD = 100000000
         # exchange rate is always as EURUSD
         self.bid = self.model.data.iat[0, 0]
         self.offer = self.model.data.iat[0, 1]
-        self.threshold = self.random.normalvariate(5000000000, 500000000) # mu = 5 billion, sigma = 500 million
+        self.threshold = random.normalvariate(8000000, 1000000) # mu = 8 million, sigma = 1 million
     
     # offload risk and unload positions within interbank cda
     # instead of threshold trading, trade on the bid ask spread explicitly
@@ -43,6 +43,8 @@ class BankAgent(Agent):
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR += match.Offer.Quantity # buying euros from counterparty
                     self.USD -= int(match.Offer.Quantity * price) # exchanging dollars for counterparty's euros
+                    self.model.usd_volume += abs(int(match.Offer.Quantity * price))
+                    self.model.eur_volume += abs(match.Offer.Quantity)
                     # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
@@ -53,6 +55,8 @@ class BankAgent(Agent):
                     price = self.model.CDA.ComputeClearingPrice()
                     self.EUR -= int(match.Offer.Quantity * (1 / price)) # selling euros to counterparty
                     self.USD += match.Offer.Quantity # getting back dollars from counterparty
+                    self.model.usd_volume += abs(match.Offer.Quantity)
+                    self.model.eur_volume += abs(int(match.Offer.Quantity * (1 / price)))
                     # print(str(price) + " euros: "+ str(self.EUR) + " dollars: " + str(self.USD))
                     for agent in self.model.schedule.agents:
                         if agent.unique_id == match.Offer.CreatorID:
@@ -62,7 +66,7 @@ class BankAgent(Agent):
     def cda_reactive_trade(self):
         spread_in_pips = abs(self.bid - self.offer) / 0.0001
         probability = self.model.get_trade_probability(spread_in_pips)
-        if random() < probability:
+        if random.random() < probability:
             self.cda_threshold_trade()
         # need to construct a spread to probability of trade execution table along with probability weighting the volume to trade
         # construct continuous probability distribution by dividing each spread data point by the maximum spread
@@ -72,7 +76,7 @@ class BankAgent(Agent):
         # add randomised margin for each bank at this stage
         # self.cda_threshold_trade()
         self.cda_reactive_trade()
-        self.threshold = self.random.normalvariate(5000000000, 500000000) # mu = 5 billion, sigma = 500 million
+        self.threshold = random.normalvariate(8000000, 1000000) # mu = 8 million, sigma = 1 million
         # print(self.threshold)
 
 class Trader(Agent):
@@ -80,37 +84,39 @@ class Trader(Agent):
     def __init__(self, unique_id, model, bank):
         super().__init__(unique_id, model)
         self.bank = bank
-        self.EUR = 10000000 # 1 million
-        self.USD = 10000000
-        self.prevEUR = 0
-        self.prevUSD = 0
+        self.EUR = 100000 # 100k
+        self.USD = 100000
 
-    def trade(self):
+    def trade(self, probability):
         self.model.num_trades += 1
-        other = self.random.choice(self.model.schedule.agents)
-        sell_currency = self.random.choice(["EUR", "USD"])
-        if sell_currency == "EUR":
-            euros = self.random.normalvariate(self.EUR/2, self.EUR * 0.05)
-            dollars = self.random.normalvariate(other.USD/2, other.USD * 0.05)
+        rnd = random.random()
+        other = self.model.schedule.agents[round(rnd * (len(self.model.schedule.agents) - 1))]
+        # other = random.choice(self.model.schedule.agents)
+        if rnd < probability: # sell eur
+            # can speed up here by getting ridding of normal variate stuff
+            euros = random.normalvariate(self.EUR/2, self.EUR * 0.05)
+            dollars = random.normalvariate(other.USD/2, other.USD * 0.05)
             other.EUR += euros
             self.EUR -= euros
             self.USD += dollars
             other.USD -= dollars
-        else:
-            dollars = self.random.normalvariate(self.USD/2, self.USD * 0.05)
-            euros = self.random.normalvariate(other.EUR/2, other.EUR * 0.05)
+            self.model.usd_volume += abs(dollars)
+            self.model.eur_volume += abs(euros)
+        else: # sell usd
+            dollars = random.normalvariate(self.USD/2, self.USD * 0.05)
+            euros = random.normalvariate(other.EUR/2, other.EUR * 0.05)
             other.USD += dollars
             self.USD -= dollars
             self.EUR += euros
             other.EUR -= euros
-            self.prevEUR = euros
-            self.prevUSD = dollars
+            self.model.usd_volume += abs(dollars)
+            self.model.eur_volume += abs(euros)
 
     def step(self):
         spread_in_pips = abs(self.bank.bid - self.bank.offer) / 0.0001
         probability = self.model.get_trade_probability(spread_in_pips)
-        if random() * 2 < probability:
-            self.trade()
+        if random.random() * 2 < probability:
+            self.trade(probability)
     
 
 
@@ -127,6 +133,10 @@ class FXModel(Model):
         self.num_trades = 0
         self.current_step = 0
         self.trades = [0]
+        self.eur_volume = 0
+        self.usd_volume = 0
+        self.usd_volumes = [0]
+        self.eur_volumes = [0]
         self.params = loadtxt("./data/model_params.txt", delimiter=",", dtype=(float, float))
 
         # Create agents
@@ -137,7 +147,9 @@ class FXModel(Model):
             for i in range(self.num_traders):
                 trader = Trader("trader" + str(i) + bank.unique_id, self, bank)
                 self.schedule.add(trader)
-        self.datacollector = DataCollector(model_reporters={"Bid": average_bid, "Offer": average_offer, "Spread": average_spread, "Trades": num_trades})
+        self.datacollector = DataCollector(
+            model_reporters={"Bid": average_bid, "Offer": average_offer, "Spread": average_spread, "Trades": num_trades, "USD Volume": usd_volume, "EUR Volume": eur_volume}
+        )
     
     def get_trade_probability(self, x):
         # example from trained spread dataset-> y = 1 - 0.03125x
@@ -156,10 +168,19 @@ class FXModel(Model):
     def step(self):
         self.datacollector.collect(self)
         self.trades.append(self.num_trades)
+        # print(self.eur_volumes)
+        self.eur_volumes.append(self.eur_volume)
+        self.usd_volumes.append(self.usd_volume)
         # print(self.trades)
         self.current_step += 1
         self.schedule.step()
         # print(self.trades)
+
+def eur_volume(model):
+    return model.eur_volumes[-1] - model.eur_volumes[-2] if len(model.eur_volumes) > 1 else model.eur_volumes[-1]
+    
+def usd_volume(model):
+    return model.usd_volumes[-1] - model.usd_volumes[-2] if len(model.usd_volumes) > 1 else model.usd_volumes[-1]
 
 def num_trades(model):
     return model.trades[-1] - model.trades[-2] if len(model.trades) > 1 else model.trades[-1]

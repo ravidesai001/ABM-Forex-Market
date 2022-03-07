@@ -65,19 +65,3 @@ class CDA(Agent):
         
         return clearingPrice / cumulativeQuantity
 
-# def main():
-#     model = FXModel(5, 10)
-#     cda = CDA("CDA", FXModel)
-#     buyOrder = Order(1, False, 100, 1.5, 1)
-#     sellOrder = Order(1, True, 100, 1.5, 1)
-#     cda.AddOrder(buyOrder)
-#     cda.AddOrder(sellOrder)
-#     cda.MatchOrders()
-#     print(cda.Matches)
-
-
-
-# if __name__ == "__main__":
-#     main()
-
-  
