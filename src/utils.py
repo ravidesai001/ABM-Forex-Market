@@ -1,6 +1,3 @@
-import random
-import time
-
 def progressBar(iterable, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """
     Call in a loop to create terminal progress bar
@@ -28,23 +25,3 @@ def progressBar(iterable, prefix = '', suffix = '', decimals = 1, length = 100, 
         printProgressBar(i + 1)
     # Print New Line on Complete
     print()
-
-
-
-start = time.process_time_ns()
-items = list(range(0, 57))
-x = 0
-# A Nicer, Single-Call Usage
-for item in progressBar(items, prefix = 'Progress:', suffix = 'Complete', length = 50):
-    # Do stuff...
-    x = 0.7 * 50000000
-    time.sleep(0.1)
-
-# x = 0
-# for i in range(10000000):
-#     # x = random.choice([1,2])
-#     # x = random.normalvariate(500, 50)
-#     x = 0.7 * 50000000
-end = time.process_time_ns()
-
-print(str((end - start)/1000000000))

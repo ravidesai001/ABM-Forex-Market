@@ -11,12 +11,12 @@ class BankAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         # try to maintain this initial ratio of euros and dollars as risk mitigation strategy
-        self.EUR = 100000000 # 10 million
-        self.USD = 100000000
+        self.EUR = 10000000000 # 1 billion
+        self.USD = 10000000000
         # exchange rate is always as EURUSD
         self.bid = self.model.data.iat[0, 0]
         self.offer = self.model.data.iat[0, 1]
-        self.threshold = random.normalvariate(8000000, 1000000) # mu = 8 million, sigma = 1 million
+        self.threshold = random.normalvariate(800000000, 100000000) # mu = 800 million, sigma = 100 million
     
     # offload risk and unload positions within interbank cda
     # instead of threshold trading, trade on the bid ask spread explicitly
@@ -76,7 +76,7 @@ class BankAgent(Agent):
         # add randomised margin for each bank at this stage
         # self.cda_threshold_trade()
         self.cda_reactive_trade()
-        self.threshold = random.normalvariate(8000000, 1000000) # mu = 8 million, sigma = 1 million
+        self.threshold = random.normalvariate(800000000, 100000000) # mu = 800 million, sigma = 100 million
         # print(self.threshold)
 
 class Trader(Agent):
@@ -84,15 +84,16 @@ class Trader(Agent):
     def __init__(self, unique_id, model, bank):
         super().__init__(unique_id, model)
         self.bank = bank
-        self.EUR = 100000 # 100k
-        self.USD = 100000
+        self.EUR = 100000000 # 100 million
+        self.USD = 100000000
 
-    def trade(self, probability):
+    def trade(self):
         self.model.num_trades += 1
         rnd = random.random()
-        other = self.model.schedule.agents[round(rnd * (len(self.model.schedule.agents) - 1))]
+        other = self.model.traders[round(rnd * (len(self.model.traders) - 1))]
         # other = random.choice(self.model.schedule.agents)
-        if rnd < probability: # sell eur
+        # print("Traders: " + str(len(self.traders)))
+        if rnd < 0.42: # sell eur
             # can speed up here by getting ridding of normal variate stuff
             euros = random.normalvariate(self.EUR/2, self.EUR * 0.05)
             dollars = random.normalvariate(other.USD/2, other.USD * 0.05)
@@ -116,7 +117,7 @@ class Trader(Agent):
         spread_in_pips = abs(self.bank.bid - self.bank.offer) / 0.0001
         probability = self.model.get_trade_probability(spread_in_pips)
         if random.random() * 2 < probability:
-            self.trade(probability)
+            self.trade()
     
 
 
@@ -150,6 +151,8 @@ class FXModel(Model):
         self.datacollector = DataCollector(
             model_reporters={"Bid": average_bid, "Offer": average_offer, "Spread": average_spread, "Trades": num_trades, "USD Volume": usd_volume, "EUR Volume": eur_volume}
         )
+
+        self.traders = [agent for agent in self.schedule.agents if agent.unique_id.startswith("trader")]
     
     def get_trade_probability(self, x):
         # example from trained spread dataset-> y = 1 - 0.03125x
