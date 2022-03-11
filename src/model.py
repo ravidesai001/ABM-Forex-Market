@@ -17,6 +17,7 @@ class BankAgent(Agent):
         self.bid = self.model.data.iat[0, 0]
         self.offer = self.model.data.iat[0, 1]
         self.threshold = random.normalvariate(800000000, 100000000) # mu = 800 million, sigma = 100 million
+        self.rate_offset = random.normalvariate(0.0001, 0.00002)
     
     # offload risk and unload positions within interbank cda
     # instead of threshold trading, trade on the bid ask spread explicitly
@@ -72,7 +73,7 @@ class BankAgent(Agent):
         # construct continuous probability distribution by dividing each spread data point by the maximum spread
     
     def step(self):
-        self.bid, self.offer = self.model.data.iat[self.model.current_step, 0], self.model.data.iat[self.model.current_step, 1]
+        self.bid, self.offer = self.model.data.iat[self.model.current_step, 0] + self.rate_offset, self.model.data.iat[self.model.current_step, 1] + self.rate_offset
         # add randomised margin for each bank at this stage
         # self.cda_threshold_trade()
         self.cda_reactive_trade()
@@ -91,12 +92,9 @@ class Trader(Agent):
         self.model.num_trades += 1
         rnd = random.random()
         other = self.model.traders[round(rnd * (len(self.model.traders) - 1))]
-        # other = random.choice(self.model.schedule.agents)
-        # print("Traders: " + str(len(self.traders)))
-        if rnd < 0.42: # sell eur
-            # can speed up here by getting ridding of normal variate stuff
+        if rnd < 0.5: # sell eur
             euros = random.normalvariate(self.EUR/2, self.EUR * 0.05)
-            dollars = random.normalvariate(other.USD/2, other.USD * 0.05)
+            dollars = euros * self.bank.offer
             other.EUR += euros
             self.EUR -= euros
             self.USD += dollars
@@ -105,7 +103,7 @@ class Trader(Agent):
             self.model.eur_volume += abs(euros)
         else: # sell usd
             dollars = random.normalvariate(self.USD/2, self.USD * 0.05)
-            euros = random.normalvariate(other.EUR/2, other.EUR * 0.05)
+            euros = dollars * (1 / self.bank.offer)
             other.USD += dollars
             self.USD -= dollars
             self.EUR += euros

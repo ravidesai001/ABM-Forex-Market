@@ -49,7 +49,7 @@ class Writer:
 def generate_linear_model():
     # data = DataReader("./data/year_2021_tick_data.csv").get_six_hour_data()
     # print(data.head())
-    Writer("./data/year_2021_tick_data.csv").write_probability_data()
+    Writer("./data/year_2020_tick_data.csv").write_probability_data()
     data = pd.read_csv("./data/probabilities.csv", dtype=(float, float))
     X, y = [], []
     for row in data.itertuples(index=False):
