@@ -56,6 +56,8 @@ def main():
     axs[3].plot(df.index.tolist(), df['EUR Volume'].tolist())
     axs[3].title.set_text("EUR Hourly Traded Volume")
     print(df.corr(method="pearson"))
+    print("Trader Euros Range: " + str(round(final_trader_euro_amounts.min() / 1000000)) + " million - " + str(round(final_trader_euro_amounts.max() / 1000000)) + " million")
+    print("Trader Dollars Range: " + str(round(final_trader_dollar_amounts.min() / 1000000)) + " million - " + str(round(final_trader_dollar_amounts.max() / 1000000)) + " million")
 
     plt.show()
 
