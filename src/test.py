@@ -1,4 +1,3 @@
-from turtle import color
 from model import *
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,6 +15,9 @@ def run_model(pid, model):
     return model
 
 def main():
+    # TODO
+    # add minimum cda trade size.
+    # differentiate between bank and retail
     num_processes = 1
     pool = Pool(processes=num_processes, initargs=(RLock(),), initializer=tqdm.set_lock)
     print("Initialising models...")
@@ -27,6 +29,7 @@ def main():
     print("\n" * (len(models) + 1))
 
     model_agents = [model.schedule.agents for model in result_list]
+    # print(len(model_agents[0]))
     # split into bank and trader agent wealths
     # final_bank_euro_amounts = np.array([[agent.EUR for agent in agent_list if agent.unique_id.startswith("bank")] for agent_list in model_agents]).flatten()
     # final_bank_dollar_amounts = np.array([[agent.USD for agent in agent_list if agent.unique_id.startswith("bank")] for agent_list in model_agents]).flatten()

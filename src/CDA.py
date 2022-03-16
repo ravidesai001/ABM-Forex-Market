@@ -1,5 +1,4 @@
 from tokenize import Double
-from mesa import Agent
 from typing import List
 from dataclasses import dataclass
 
@@ -11,15 +10,13 @@ class Order(object):
     Price: int
     currency: int # 0 = euros, 1 = dollars
 
-
 @dataclass  
 class Match(object):   
     Bid: Order   
     Offer: Order
 
-class CDA(Agent):
-    def __init__(self, unique_id, model):
-        super().__init__(unique_id, model)
+class CDA:
+    def __init__(self):
         self.Bids: List[Order] = []
         self.Offers: List[Order] = []
         self.Matches: List[Match] = []
