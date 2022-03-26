@@ -3,11 +3,11 @@ from mesa.visualization.modules import ChartModule
 
 from model import *
 
-# rate_chart = ChartModule([{"Label": "Bid",
-#                       "Color": "Black"},
-#                       {"Label": "Offer",
-#                       "Color": "Red"}],
-#                     data_collector_name='datacollector')
+rate_chart = ChartModule([{"Label": "Bid",
+                      "Color": "Black"},
+                      {"Label": "Offer",
+                      "Color": "Red"}],
+                    data_collector_name='datacollector')
                 
 
 spread_chart = ChartModule([{"Label": "Spread", "Color": "Red"}], 

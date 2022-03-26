@@ -1,13 +1,12 @@
-import random
-import time
+from argparse import ArgumentParser
 
-start = time.process_time_ns()
-x = []
-for i in range(10000000):
-    r = random.random()
-    x.append(0) if r < 0.5 else x.append(1)
-    # r = random.choice([0, 1])
-    # x.append(r)
-end = time.process_time_ns()
-print(sum(x) / float(len(x)))
-print(str((end - start)/1000000000))
+parser = ArgumentParser()
+
+parser.add_argument( "-b", "--bank", type=int, help= "The number of banks in a model")
+parser.add_argument("-t", "--trader", type=int, help= "The number of traders per bank in a model")
+parser.add_argument("-n", "--runs", type=int,  
+    help= "The number of times to run the model. Does a concurrent batch run using all processing threads.")
+
+args = parser.parse_args()
+
+print(args.bank, args.trader, args.runs)
