@@ -32,7 +32,7 @@ def display_trader_wealth(model_agents):
     hist_axs[0].hist(final_trader_euro_amounts, bins=100, color="green", label="Euros")
     hist_axs[1].hist(final_trader_dollar_amounts, bins=100, color="orange",label="Dollars")
     hist_fig.legend(loc="upper right")
-    hist_fig.savefig("./results/histogram" + str(datetime.now()) + ".png")
+    hist_fig.savefig("./results/histogram" + str(banks) + "_" + str(traders) + "_" + str(runs) + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".png")
     trader_euro_range_string = "Trader Euros Range: " + str(round(final_trader_euro_amounts.min() / 1000000)) + " million - " + str(round(final_trader_euro_amounts.max() / 1000000)) + " million"
     trader_dollar_range_string = "Trader Dollars Range: " + str(round(final_trader_dollar_amounts.min() / 1000000)) + " million - " + str(round(final_trader_dollar_amounts.max() / 1000000)) + " million"
     print(trader_euro_range_string)
@@ -89,7 +89,7 @@ def main(num_banks, num_traders, num_runs, training_data, running_data):
     axs[4].plot(df.index.tolist(), df['EUR Volume'].tolist())
     axs[4].title.set_text("EUR Hourly Traded Volume")
     axs[4].set_ylabel("Euros")
-    fig.savefig("./results/graphs" + str(datetime.now()) + ".png")
+    fig.savefig("./results/graphs" + str(banks) + "_" + str(traders) + "_" + str(runs) + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".png")
     # axs[5].plot(df.index.tolist(), df['Gini'].tolist())
     # axs[5].title.set_text("Gini Coefficient")
     corr_matrix = df.corr(method="pearson")
@@ -117,9 +117,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if not os.path.exists("./results"):
         os.makedirs("./results")
-    stats_file = open("./results/stats" + str(datetime.now()) + ".txt" , "w")
     banks, traders, runs = args.bank, args.trader, args.runs
     training_path, run_path = args.training, args.running
+    stats_file = open("./results/stats" + str(banks) + "_" + str(traders) + "_" + str(runs) + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".txt" , "w")
     if banks == None:
         banks = 10
     if traders == None:
