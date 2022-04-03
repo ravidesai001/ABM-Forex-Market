@@ -2,7 +2,7 @@ from model import *
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from multiprocessing import Pool, RLock
+from multiprocessing import Pool, RLock, cpu_count
 from tqdm import tqdm
 from argparse import ArgumentParser
 from regression import generate_linear_model_params
@@ -17,6 +17,33 @@ def run_model(pid, model):
             model.step()
             pbar.update(1)
     return model
+
+def batch_run(num_banks, num_traders, num_runs, running_data, linear_params):
+    num_processes = num_runs
+    pool = Pool(processes=num_processes, initargs=(RLock(),), initializer=tqdm.set_lock)
+    print("Initialising models...")
+    models = [FXModel(num_banks, num_traders, linear_params, running_data) for i in range(num_processes)]
+    jobs = [pool.apply_async(run_model, args=(i, m)) for i, m in enumerate(models)]
+    pool.close()
+    result_list = [job.get() for job in jobs]
+    print("\n" * (len(models) + 1))
+    return result_list
+
+def batch_run_seqeuntial_batched(num_banks, num_traders, num_runs, running_data, linear_params):
+    batches = int(num_runs / cpu_count())
+    runs_left = num_runs
+    result_lists = []
+    for i in range(1, batches + 1):
+        result_list = batch_run(num_banks, num_traders, cpu_count(), running_data, linear_params)
+        result_lists.append(result_list)
+        runs_left -= len(result_list)
+        print("Runs left: " + str(runs_left))
+    
+    if runs_left > 0:
+        result_lists.append(batch_run(num_banks, num_traders, runs_left, running_data, linear_params))
+
+    results = [j for sub in result_lists for j in sub]
+    return results
 
 def display_trader_wealth(model_agents):
     # print(len(model_agents[0]))
@@ -41,17 +68,8 @@ def display_trader_wealth(model_agents):
 
 
 def main(num_banks, num_traders, num_runs, training_data, running_data):
-    num_processes = num_runs
-    pool = Pool(processes=num_processes, initargs=(RLock(),), initializer=tqdm.set_lock)
-    print("Initialising models...")
     linear_params = generate_linear_model_params(training_data)
-    models = [FXModel(num_banks, num_traders, linear_params, running_data) for i in range(num_processes)]
-    jobs = [pool.apply_async(run_model, args=(i, m)) for i, m in enumerate(models)]
-    pool.close()
-    result_list = [job.get() for job in jobs]
-
-    print("\n" * (len(models) + 1))
-
+    result_list = batch_run_seqeuntial_batched(num_banks, num_traders, num_runs, running_data, linear_params)
     model_agents = [model.schedule.agents for model in result_list]
     
     if num_traders > 0:
