@@ -7,9 +7,9 @@ class DataReader:
         self.data = None
         # millisecond precision tick data "./data/december_2021_tick_data.csv"
         if "year" in self.file:
-            self.data = pd.read_csv(self.file, usecols=[0,1,2], delimiter=";", converters={'date': self.convert_date})
+            self.data = pd.read_csv(self.file, usecols=[0,1,2], names=["date", "bid", "offer"], delimiter=";", converters={'date': self.convert_date})
         else: # month case
-            self.data = pd.read_csv(self.file, usecols=[0,1,2], converters={'date': self.convert_date})
+            self.data = pd.read_csv(self.file, usecols=[0,1,2], names=["date", "bid", "offer"], converters={'date': self.convert_date})
     
     def convert_date(self, x):
         dt = x.split(" ")

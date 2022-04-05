@@ -11,6 +11,9 @@ __pycache__/
 # results folder
 results/
 
+# datasets
+*.csv
+
 # C extensions
 *.so
 

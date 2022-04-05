@@ -122,9 +122,9 @@ def main(num_banks, num_traders, num_runs, training_data, running_data):
 
 if __name__ == "__main__":
     # TODO
-    # Add toggle for spread trading signal
+    # Add toggle for spread trading signal - DONE - if no training data specified no trade signal
     # Add argument parsing for a training file and a run time file - DONE
-    # Add result saving automatically in a subfolder
+    # Add result saving automatically in a subfolder - DONE
     parser = ArgumentParser()
     parser.add_argument("-b", "--bank", type=int, help= "The number of banks in a model")
     parser.add_argument("-t", "--trader", type=int, help= "The number of traders per bank in a model")
