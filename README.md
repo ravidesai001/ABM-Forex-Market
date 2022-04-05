@@ -3,9 +3,13 @@
 ## Requirements
 
 - Native Unix based desktop operating system. e.g: Ubuntu 20.04
-- Python 3.9 with pip 3 version 20 or newer
+- Python 3 with pip 3
+- Python 3 venv
+- Python 3 tk
 
-## Dependencies
+To install these dependencies on Ubuntu run the following command: sudo apt install python3.9 python3-tk python3.9-venv
+
+## Dependencies used
 
 - mesa
 - scikit-learn
