@@ -147,7 +147,7 @@ if __name__ == "__main__":
     # if training_path == None:
     #     training_path = "./data/year_2020_tick_data.csv"
     if run_path == None:
-        run_path = "./data/year_2021_tick_data.csv"
+        run_path = "../data/year_2021_tick_data.csv"
     if banks < 1:
         print("Must have at least one bank")
     elif traders < 0:
