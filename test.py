@@ -7,7 +7,6 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 from regression import generate_linear_model_params
 import os
-from datetime import datetime
 
 def run_model(pid, model):
     tqdm_text = "#" + "{}".format(pid).zfill(3)
@@ -46,11 +45,8 @@ def batch_run_seqeuntial_batched(num_banks, num_traders, num_runs, running_data,
     return results
 
 def display_trader_wealth(model_agents):
-    # print(len(model_agents[0]))
-    # split into bank and trader agent wealths
     final_trader_euro_amounts = np.array([[agent.EUR for agent in agent_list if agent.unique_id.startswith("trader")] for agent_list in model_agents]).flatten()
     final_trader_dollar_amounts = np.array([[agent.USD for agent in agent_list if agent.unique_id.startswith("trader")] for agent_list in model_agents]).flatten()
-    # do histogram with number of agents on y axis and bins of wealth amounts on the x axis
     hist_fig, hist_axs = plt.subplots(2, sharex=True)
     hist_fig.set_size_inches(7, 7)
     hist_fig.text(0.5, 0.04, 'Currency Reserves', ha='center')
@@ -88,9 +84,8 @@ def main(num_banks, num_traders, num_runs, training_data, running_data):
     fig.set_size_inches(11, 9)
     fig.suptitle('Spread vs Trade Activity')
     fig.text(0.5, 0.04, 'Model Step', ha='center')
-    df = pd.concat(data)#.drop(labels=['Bid', 'Offer'], axis=1)
+    df = pd.concat(data)
     df = df.groupby(df.index).mean()
-    # print(df.head())
     axs[0].plot(df.index.tolist(), df['Bid'].tolist())
     axs[0].plot(df.index.tolist(), df['Offer'].tolist())
     axs[0].title.set_text("Bid and Offer")
@@ -108,8 +103,6 @@ def main(num_banks, num_traders, num_runs, training_data, running_data):
     axs[4].title.set_text("EUR Hourly Traded Volume")
     axs[4].set_ylabel("Euros")
     fig.savefig("./results/graphs" + str(banks) + "_" + str(traders) + "_" + str(runs) + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".png")
-    # axs[5].plot(df.index.tolist(), df['Gini'].tolist())
-    # axs[5].title.set_text("Gini Coefficient")
     corr_matrix = df.corr(method="pearson")
     spread_trades_corr = "Correlation Between Spread and Number of Trades: " + str(round(corr_matrix.iloc[3]["Spread"], 3))
     spread_euros_corr = "Correlation Between Spread and Euro Traded Volume: " + str(round(corr_matrix.iloc[4]["Spread"], 3))
@@ -121,10 +114,6 @@ def main(num_banks, num_traders, num_runs, training_data, running_data):
     plt.show()
 
 if __name__ == "__main__":
-    # TODO
-    # Add toggle for spread trading signal - DONE - if no training data specified no trade signal
-    # Add argument parsing for a training file and a run time file - DONE
-    # Add result saving automatically in a subfolder - DONE
     parser = ArgumentParser()
     parser.add_argument("-b", "--bank", type=int, help= "The number of banks in a model")
     parser.add_argument("-t", "--trader", type=int, help= "The number of traders per bank in a model")
@@ -144,8 +133,6 @@ if __name__ == "__main__":
         traders = 50
     if runs == None:
         runs = 1
-    # if training_path == None:
-    #     training_path = "./data/year_2020_tick_data.csv"
     if run_path == None:
         run_path = "../data/year_2021_tick_data.csv"
     if banks < 1:

@@ -37,7 +37,6 @@ class CDA:
                 break
             currBid = self.Bids.pop()
             currOffer = self.Offers.pop()
-            # if currBid.Quantity != currOffer.Quantity:
             if currBid.Quantity > currOffer.Quantity:
                 newBid = Order(currBid.CreatorID, currBid.Side, currBid.Quantity - currOffer.Quantity, currBid.Price, currBid.currency)
                 self.Bids.insert(0, newBid)
@@ -49,11 +48,6 @@ class CDA:
             if currBid.currency == currOffer.currency:
                 if currBid.CreatorID != currOffer.CreatorID:
                     self.Matches.append(Match(currBid, currOffer))
-    
-    def ClearOrderBook(self):
-        self.Bids.clear()
-        self.Offers.clear()
-        self.Matches.clear()
 
     def ComputeClearingPrice(self) -> Double:
         if len(self.Matches) == 0:   

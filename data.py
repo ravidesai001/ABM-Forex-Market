@@ -5,7 +5,7 @@ class DataReader:
     def __init__(self, filename) -> None:
         self.file = filename
         self.data = None
-        # millisecond precision tick data "./data/december_2021_tick_data.csv"
+        # millisecond precision tick data on monthly data sets from HistData
         if "year" in self.file:
             self.data = pd.read_csv(self.file, usecols=[0,1,2], names=["date", "bid", "offer"], delimiter=";", converters={'date': self.convert_date})
         else: # month case

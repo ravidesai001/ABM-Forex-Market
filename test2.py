@@ -1,6 +1,5 @@
 from model import *
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from multiprocessing import Pool, RLock, cpu_count
 from tqdm import tqdm
@@ -42,7 +41,6 @@ def batch_run_seqeuntial_batched(num_banks, num_traders, num_runs, running_data,
     results = [j for sub in result_lists for j in sub]
     print("\n" * (len(results) + 1))
     return results
-
 
 def hyperparameter_tune_banks(num_banks, num_traders, num_runs, training_data, running_data):
     trades, euros, dollars = [], [], []

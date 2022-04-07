@@ -4,10 +4,8 @@
 
 - Native Unix based desktop operating system. e.g: Ubuntu 20.04
 - Python 3 with pip 3
-- Python 3 venv
-- Python 3 tk
-
-To install these dependencies on Ubuntu run the following command: sudo apt install python3.9 python3-tk python3.9-venv
+- Python 3 venv package
+- Python 3 tk package
 
 ## Dependencies used
 
@@ -22,6 +20,6 @@ To install the dependencies and generate an environment for the code you need to
 
     ./install.sh
 
-To run the model use the run.sh script.
+To run the model use the run.sh script with the additional flags to define hyperparameters and datasets.
 
-    ./run.sh
+    ./run.sh -b 10 -t 50 -n 10 -d ./data/year_2020_tick_data.csv -r ./data/year_2021_tick_data.csv
