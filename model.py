@@ -16,12 +16,12 @@ class BankAgent(Agent):
         self.rate_offset = random.normalvariate(0.0001, 0.00002)
 
     def cda_trade(self):
-        self.model.CDA.MatchOrders()
-        for match in self.model.CDA.Matches:
+        self.model.CDA.match_orders()
+        for match in self.model.CDA.matches:
             if match.Bid.CreatorID == self.unique_id:
                 self.model.num_trades += 1
                 if match.Bid.currency == 0: # euros
-                    price = self.model.CDA.ComputeClearingPrice()
+                    price = self.model.CDA.compute_clearing_price()
                     self.EUR += match.Offer.Quantity # buying euros from counterparty
                     self.USD -= int(match.Offer.Quantity * price) # exchanging dollars for counterparty's euros
                     self.model.usd_volume += abs(int(match.Offer.Quantity * price))
@@ -32,7 +32,7 @@ class BankAgent(Agent):
                             agent.USD += int(match.Offer.Quantity * price)
                 elif match.Bid.currency == 1: # dollars
                     # maybe set clearing price as new exchange rate to see how that works
-                    price = self.model.CDA.ComputeClearingPrice()
+                    price = self.model.CDA.compute_clearing_price()
                     self.EUR -= int(match.Offer.Quantity * (1 / price)) # selling euros to counterparty
                     self.USD += match.Offer.Quantity # getting back dollars from counterparty
                     self.model.usd_volume += abs(match.Offer.Quantity)
@@ -41,7 +41,7 @@ class BankAgent(Agent):
                         if agent.unique_id == match.Offer.CreatorID:
                             agent.EUR += int(match.Offer.Quantity * (1 / price))
                             agent.USD -= match.Offer.Quantity
-                self.model.CDA.Matches.remove(match)
+                self.model.CDA.matches.remove(match)
         
     def cda_random_trade(self):
         rnd = random.random()
@@ -50,14 +50,14 @@ class BankAgent(Agent):
         dollars = random.random() * self.USD/trade_portion
         if rnd < 0.5:
             sellEuroOrder = Order(self.unique_id, True, int(euros), self.offer, 0)
-            self.model.CDA.AddOrder(sellEuroOrder)
+            self.model.CDA.add_order(sellEuroOrder)
             sellDollarOrder = Order(self.unique_id, True, int(dollars), self.offer, 0)
-            self.model.CDA.AddOrder(sellDollarOrder)
+            self.model.CDA.add_order(sellDollarOrder)
         else:
             buyEuroOrder = Order(self.unique_id, False, int(euros), self.bid, 0)
-            self.model.CDA.AddOrder(buyEuroOrder)
+            self.model.CDA.add_order(buyEuroOrder)
             buyDollarOrder = Order(self.unique_id, False, int(dollars), self.bid, 0)
-            self.model.CDA.AddOrder(buyDollarOrder)
+            self.model.CDA.add_order(buyDollarOrder)
  
     def cda_reactive_trade(self):
         spread_in_pips = abs(self.bid - self.offer) / 0.0001

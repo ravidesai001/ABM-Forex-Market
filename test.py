@@ -55,7 +55,8 @@ def display_trader_wealth(model_agents):
     hist_axs[0].hist(final_trader_euro_amounts, bins=100, color="green", label="Euros")
     hist_axs[1].hist(final_trader_dollar_amounts, bins=100, color="orange",label="Dollars")
     hist_fig.legend(loc="upper right")
-    hist_fig.savefig("./results/histogram" + str(banks) + "_" + str(traders) + "_" + str(runs) + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".png")
+    hist_fig.savefig("./results/histogram" + str(banks) + "_" + str(traders) + "_" + str(runs) 
+        + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".png")
     trader_euro_range_string = "Trader Euros Range: " + str(round(final_trader_euro_amounts.min() / 1000000)) + " million - " + str(round(final_trader_euro_amounts.max() / 1000000)) + " million"
     trader_dollar_range_string = "Trader Dollars Range: " + str(round(final_trader_dollar_amounts.min() / 1000000)) + " million - " + str(round(final_trader_dollar_amounts.max() / 1000000)) + " million"
     print(trader_euro_range_string)
@@ -102,7 +103,8 @@ def main(num_banks, num_traders, num_runs, training_data, running_data):
     axs[4].plot(df.index.tolist(), df['EUR Volume'].tolist())
     axs[4].title.set_text("EUR Hourly Traded Volume")
     axs[4].set_ylabel("Euros")
-    fig.savefig("./results/graphs" + str(banks) + "_" + str(traders) + "_" + str(runs) + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".png")
+    fig.savefig("./results/graphs" + str(banks) + "_" + str(traders) + "_" + str(runs) 
+        + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".png")
     corr_matrix = df.corr(method="pearson")
     spread_trades_corr = "Correlation Between Spread and Number of Trades: " + str(round(corr_matrix.iloc[3]["Spread"], 3))
     spread_euros_corr = "Correlation Between Spread and Euro Traded Volume: " + str(round(corr_matrix.iloc[4]["Spread"], 3))
@@ -119,14 +121,15 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--trader", type=int, help= "The number of traders per bank in a model")
     parser.add_argument("-n", "--runs", type=int,
         help= "The number of times to run the model. Does a concurrent batch run using all processing threads.")
-    parser.add_argument("-td", "--training", help= "The absolute path to the training data.")
-    parser.add_argument("-rd", "--running", help= "The absolute path to the run time data.")
+    parser.add_argument("-d", "--training", help= "The relative or absolute path to the training data.")
+    parser.add_argument("-r", "--running", help= "The relative or absolute path to the run time data.")
     args = parser.parse_args()
     if not os.path.exists("./results"):
         os.makedirs("./results")
     banks, traders, runs = args.bank, args.trader, args.runs
     training_path, run_path = args.training, args.running
-    stats_file = open("./results/stats" + str(banks) + "_" + str(traders) + "_" + str(runs) + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".txt" , "w")
+    stats_file = open("./results/stats" + str(banks) + "_" + str(traders) + "_" + str(runs) 
+        + "_" + training_path.split("/")[-1] + "_" + run_path.split("/")[-1] + ".txt" , "w")
     if banks == None:
         banks = 10
     if traders == None:
@@ -135,6 +138,8 @@ if __name__ == "__main__":
         runs = 1
     if run_path == None:
         run_path = "../data/year_2021_tick_data.csv"
+    if training_path == None:
+        training_path = "none"
     if banks < 1:
         print("Must have at least one bank")
     elif traders < 0:

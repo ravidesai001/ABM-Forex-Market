@@ -12,4 +12,4 @@ do
 done
 
 source env/bin/activate
-python3 test.py -b $banks -t $traders -n $runs -td $training_data -rd $running_data
+python3 test.py -b $banks -t $traders -n $runs -d $training_data -r $running_data

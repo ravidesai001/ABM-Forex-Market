@@ -23,3 +23,7 @@ To install the dependencies and generate an environment for the code you need to
 To run the model use the run.sh script with the additional flags to define hyperparameters and datasets.
 
     ./run.sh -b 10 -t 50 -n 10 -d ./data/year_2020_tick_data.csv -r ./data/year_2021_tick_data.csv
+
+To run the model without a trade signal and hence no training data the command would be as follows:
+
+    ./run.sh -b 10 -t 50 -n 10 -d none -r ./data/year_2021_tick_data.csv
