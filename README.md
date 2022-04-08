@@ -35,3 +35,5 @@ This command uses the relative path from the directory of the project with train
 To run the model without a trade signal and hence no training data the command would be as follows:
 
     ./run.sh -b 10 -t 50 -n 10 -d none -r ./data/year_2021_tick_data.csv
+
+You can find the graphical and numerical outputs saved in the results subdirectory.
